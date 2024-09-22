@@ -51,11 +51,13 @@ func (s *ApiServer) Run() error {
 
 func (s *ApiServer) handleAccunt(w http.ResponseWriter, r *http.Request) error {
 	// This will be the handler for the /account endpoint
-	return nil
+	account := NewAccount("John", "Doe")
+	return WriteJSON(w, http.StatusOK, account)
 }
 
 func (s *ApiServer) handleGetAccount(w http.ResponseWriter, r *http.Request) error {
-	return nil
+	// id := mux.Vars(r)["id"]
+	return WriteJSON(w, http.StatusOK, mux.Vars(r))
 }
 
 func (s *ApiServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) error {
