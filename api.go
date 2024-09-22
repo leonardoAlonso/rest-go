@@ -10,6 +10,7 @@ import (
 
 type ApiServer struct {
 	listenAddress string
+	store         AccountStorage
 }
 
 // this type will be used to define the handler functions to transform them into http.handlerFunc to ensuce the interface implementation of mux handlerFunc
@@ -19,8 +20,8 @@ type ApiError struct {
 	error string `json:"error"`
 }
 
-func NewApiServer(listenAddress string) *ApiServer {
-	return &ApiServer{listenAddress: listenAddress}
+func NewApiServer(listenAddress string, store AccountStorage) *ApiServer {
+	return &ApiServer{listenAddress: listenAddress, store: store}
 }
 
 func WriteJSON(w http.ResponseWriter, status int, v any) error {
