@@ -41,7 +41,7 @@ func wrapHandler(h handlerFunc) http.HandlerFunc {
 
 func (s *ApiServer) Run() error {
 	router := mux.NewRouter()
-	router.HandleFunc("/account", wrapHandler(s.handleAccunt)).Methods("Get")
+	router.HandleFunc("/account", wrapHandler(s.handleAccount)).Methods("Get")
 	router.HandleFunc("/account/{id}", wrapHandler(s.handleGetAccount)).Methods("Get")
 	router.HandleFunc("/account", wrapHandler(s.handleCreateAccount)).Methods("Post")
 	router.HandleFunc("/account/{id}", wrapHandler(s.handleDeleteAccount)).Methods("Delete")
@@ -50,10 +50,13 @@ func (s *ApiServer) Run() error {
 	return http.ListenAndServe(s.listenAddress, router)
 }
 
-func (s *ApiServer) handleAccunt(w http.ResponseWriter, r *http.Request) error {
+func (s *ApiServer) handleAccount(w http.ResponseWriter, r *http.Request) error {
 	// This will be the handler for the /account endpoint
-	account := NewAccount("John", "Doe")
-	return WriteJSON(w, http.StatusOK, account)
+	accounts, err := s.store.GetAccounts()
+	if err != nil {
+		return err
+	}
+	return WriteJSON(w, http.StatusOK, accounts)
 }
 
 func (s *ApiServer) handleGetAccount(w http.ResponseWriter, r *http.Request) error {
@@ -62,7 +65,16 @@ func (s *ApiServer) handleGetAccount(w http.ResponseWriter, r *http.Request) err
 }
 
 func (s *ApiServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) error {
-	return nil
+	createAccountRequest := new(CreateAccountRequest)
+	if err := json.NewDecoder(r.Body).Decode(createAccountRequest); err != nil {
+		return err
+	}
+
+	account := NewAccount(createAccountRequest.FirstName, createAccountRequest.LastName)
+	if err := s.store.CreateAccount(account); err != nil {
+		return err
+	}
+	return WriteJSON(w, http.StatusCreated, account)
 }
 
 func (s *ApiServer) handleDeleteAccount(w http.ResponseWriter, r *http.Request) error {

@@ -1,14 +1,24 @@
 package main
 
-import "math/rand"
+import (
+	"math/rand"
+	"time"
+)
+
+type CreateAccountRequest struct {
+	// this struct is used to define the request body for the create account endpoint
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+}
 
 type Account struct {
 	// this struct uses json tags to define the json keys
-	ID        int     `json:"id"`
-	FirstName string  `json:"first_name"`
-	LastName  string  `json:"last_name"`
-	Number    int64   `json:"number"`
-	Balance   float64 `json:"balance"`
+	ID        int       `json:"id"`
+	FirstName string    `json:"first_name"`
+	LastName  string    `json:"last_name"`
+	Number    int64     `json:"number"`
+	Balance   float64   `json:"balance"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 func NewAccount(firstName string, lastName string) *Account {
@@ -16,9 +26,9 @@ func NewAccount(firstName string, lastName string) *Account {
 	// we use pointers to use the same instance of the account
 
 	return &Account{
-		ID:        rand.Intn(10000),
 		FirstName: firstName,
 		LastName:  lastName,
 		Number:    int64(rand.Intn(1000000000)),
+		CreatedAt: time.Now().UTC(),
 	}
 }
