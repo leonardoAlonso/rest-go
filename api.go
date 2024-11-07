@@ -2,8 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 )
@@ -17,7 +19,7 @@ type ApiServer struct {
 type handlerFunc func(w http.ResponseWriter, r *http.Request) error
 
 type ApiError struct {
-	error string `json:"error"`
+	Error string `json:"error"`
 }
 
 func NewApiServer(listenAddress string, store AccountStorage) *ApiServer {
@@ -34,7 +36,7 @@ func wrapHandler(h handlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := h(w, r); err != nil {
 			// handle the error
-			WriteJSON(w, http.StatusBadRequest, ApiError{error: err.Error()})
+			WriteJSON(w, http.StatusBadRequest, ApiError{Error: err.Error()})
 		}
 	}
 }
@@ -42,7 +44,7 @@ func wrapHandler(h handlerFunc) http.HandlerFunc {
 func (s *ApiServer) Run() error {
 	router := mux.NewRouter()
 	router.HandleFunc("/account", wrapHandler(s.handleAccount)).Methods("Get")
-	router.HandleFunc("/account/{id}", wrapHandler(s.handleGetAccount)).Methods("Get")
+	router.HandleFunc("/account/{id}", wrapHandler(s.handleGetAccountById)).Methods("Get")
 	router.HandleFunc("/account", wrapHandler(s.handleCreateAccount)).Methods("Post")
 	router.HandleFunc("/account/{id}", wrapHandler(s.handleDeleteAccount)).Methods("Delete")
 	router.HandleFunc("/transfer", wrapHandler(s.handleTransfer)).Methods("Post")
@@ -59,9 +61,14 @@ func (s *ApiServer) handleAccount(w http.ResponseWriter, r *http.Request) error 
 	return WriteJSON(w, http.StatusOK, accounts)
 }
 
-func (s *ApiServer) handleGetAccount(w http.ResponseWriter, r *http.Request) error {
-	// id := mux.Vars(r)["id"]
-	return WriteJSON(w, http.StatusOK, mux.Vars(r))
+func (s *ApiServer) handleGetAccountById(w http.ResponseWriter, r *http.Request) error {
+	id, err := getId(r)
+	account, err := s.store.GetAccountByID(id)
+	if err != nil {
+		return err
+	}
+
+	return WriteJSON(w, http.StatusOK, account)
 }
 
 func (s *ApiServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) error {
@@ -78,9 +85,30 @@ func (s *ApiServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *ApiServer) handleDeleteAccount(w http.ResponseWriter, r *http.Request) error {
-	return nil
+	id, err := getId(r)
+	if err != nil {
+		return err
+	}
+	if err := s.store.DeleteAccount(id); err != nil {
+		return err
+	}
+	return WriteJSON(w, http.StatusOK, map[string]int{"deleted": id})
 }
 
 func (s *ApiServer) handleTransfer(w http.ResponseWriter, r *http.Request) error {
-	return nil
+	transferRequest := new(TransferRequest)
+	if err := json.NewDecoder(r.Body).Decode(transferRequest); err != nil {
+		return err
+	}
+	defer r.Body.Close()
+	return WriteJSON(w, http.StatusOK, transferRequest)
+}
+
+func getId(r *http.Request) (int, error) {
+	idStr := mux.Vars(r)["id"]
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		return 0, fmt.Errorf("Invalid id given %s", idStr)
+	}
+	return id, nil
 }

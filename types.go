@@ -5,6 +5,12 @@ import (
 	"time"
 )
 
+type TransferRequest struct {
+	// this struct is used to define the request body for the transfer endpoint
+	ToAccountID int     `json:"to_account_id"`
+	Amount      float64 `json:"amount"`
+}
+
 type CreateAccountRequest struct {
 	// this struct is used to define the request body for the create account endpoint
 	FirstName string `json:"first_name"`
