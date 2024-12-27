@@ -44,7 +44,8 @@ func wrapHandler(h handlerFunc) http.HandlerFunc {
 func (s *ApiServer) Run() error {
 	router := mux.NewRouter()
 	router.HandleFunc("/account", wrapHandler(s.handleAccount)).Methods("Get")
-	router.HandleFunc("/account/{id}", wrapHandler(s.handleGetAccountById)).Methods("Get")
+	router.HandleFunc("/account/{id}", withJWTAuth(wrapHandler(s.handleGetAccountById), s.store)).
+		Methods("Get")
 	router.HandleFunc("/account", wrapHandler(s.handleCreateAccount)).Methods("Post")
 	router.HandleFunc("/account/{id}", wrapHandler(s.handleDeleteAccount)).Methods("Delete")
 	router.HandleFunc("/transfer", wrapHandler(s.handleTransfer)).Methods("Post")
@@ -81,6 +82,14 @@ func (s *ApiServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) 
 	if err := s.store.CreateAccount(account); err != nil {
 		return err
 	}
+
+	token, err := createJWT(account)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Token: ", token)
+
 	return WriteJSON(w, http.StatusCreated, account)
 }
 

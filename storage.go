@@ -58,7 +58,7 @@ func (s *PostgresStorage) CreateAccount(account *Account) error {
       INSERT INTO accounts (first_name, last_name, number, balance)
       VALUES ($1, $2, $3, $4)
   `
-	resp, err := s.db.Query(
+	_, err := s.db.Query(
 		query,
 		account.FirstName,
 		account.LastName,
@@ -68,8 +68,6 @@ func (s *PostgresStorage) CreateAccount(account *Account) error {
 	if err != nil {
 		return err
 	}
-
-	fmt.Printf("%+v\n", resp)
 
 	return nil
 }
