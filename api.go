@@ -48,9 +48,44 @@ func (s *ApiServer) Run() error {
 		Methods("Get")
 	router.HandleFunc("/account", wrapHandler(s.handleCreateAccount)).Methods("Post")
 	router.HandleFunc("/account/{id}", wrapHandler(s.handleDeleteAccount)).Methods("Delete")
+
+	// Transfer endpoint
 	router.HandleFunc("/transfer", wrapHandler(s.handleTransfer)).Methods("Post")
+
+	// Login endpoint
+	router.HandleFunc("/login", wrapHandler(s.handleLogin)).Methods("Post")
+
 	log.Println("Server is running on port: ", s.listenAddress)
 	return http.ListenAndServe(s.listenAddress, router)
+}
+
+func (s *ApiServer) handleLogin(w http.ResponseWriter, r *http.Request) error {
+	var loginRequest LoginRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&loginRequest); err != nil {
+		return err
+	}
+
+	account, err := s.store.GetAccountByNumber(loginRequest.Number)
+	if err != nil {
+		return WriteJSON(w, http.StatusUnauthorized, ApiError{Error: "Invalid account number"})
+	}
+
+	if !account.ComparePassword(loginRequest.Password) {
+		return WriteJSON(w, http.StatusUnauthorized, ApiError{Error: "Not authorized"})
+	}
+
+	token, err := createJWT(account)
+	if err != nil {
+		return err
+	}
+
+	response := LoginResponse{
+		Number: account.Number,
+		Token:  token,
+	}
+
+	return WriteJSON(w, http.StatusOK, response)
 }
 
 func (s *ApiServer) handleAccount(w http.ResponseWriter, r *http.Request) error {
@@ -78,17 +113,22 @@ func (s *ApiServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) 
 		return err
 	}
 
-	account := NewAccount(createAccountRequest.FirstName, createAccountRequest.LastName)
-	if err := s.store.CreateAccount(account); err != nil {
-		return err
+	if createAccountRequest.FirstName == "" || createAccountRequest.LastName == "" ||
+		createAccountRequest.Password == "" {
+		return WriteJSON(w, http.StatusBadRequest, ApiError{Error: "Invalid request"})
 	}
 
-	token, err := createJWT(account)
+	account, err := NewAccount(
+		createAccountRequest.FirstName,
+		createAccountRequest.LastName,
+		createAccountRequest.Password,
+	)
 	if err != nil {
 		return err
 	}
-
-	fmt.Println("Token: ", token)
+	if err := s.store.CreateAccount(account); err != nil {
+		return err
+	}
 
 	return WriteJSON(w, http.StatusCreated, account)
 }
