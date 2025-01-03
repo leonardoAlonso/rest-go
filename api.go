@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -55,7 +54,8 @@ func (s *ApiServer) Run() error {
 	// Login endpoint
 	router.HandleFunc("/login", wrapHandler(s.handleLogin)).Methods("Post")
 
-	log.Println("Server is running on port: ", s.listenAddress)
+	InfoLogger.Println("Server is running on port: ", s.listenAddress)
+
 	return http.ListenAndServe(s.listenAddress, router)
 }
 

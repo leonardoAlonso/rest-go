@@ -58,5 +58,13 @@ func NewAccount(firstName string, lastName string, password string) (*Account, e
 }
 
 func (a *Account) ComparePassword(password string) bool {
-	return bcrypt.CompareHashAndPassword([]byte(a.EncriptedPassword), []byte(password)) == nil
+	samePassword := bcrypt.CompareHashAndPassword(
+		[]byte(a.EncriptedPassword),
+		[]byte(password),
+	) == nil
+	if !samePassword {
+		WarningLogger.Println("Password does not match")
+		return false
+	}
+	return true
 }

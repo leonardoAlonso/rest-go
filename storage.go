@@ -99,13 +99,14 @@ func (s *PostgresStorage) GetAccountByNumber(number int64) (*Account, error) {
 		number,
 	)
 	if err != nil {
+		ErrorLogger.Println("Error getting account by number: ", err)
 		return nil, err
 	}
 
 	for rows.Next() {
 		return scanIntoAccount(rows)
 	}
-
+	ErrorLogger.Println("account not found")
 	return nil, fmt.Errorf("account %d not found", number)
 }
 
@@ -115,6 +116,7 @@ func (s *PostgresStorage) GetAccountByID(id int) (*Account, error) {
 		id,
 	)
 	if err != nil {
+		ErrorLogger.Println("Error getting account by id: ", err)
 		return nil, err
 	}
 	for rows.Next() {
@@ -129,6 +131,7 @@ func (s *PostgresStorage) GetAccounts() ([]*Account, error) {
 
 	rows, err := s.db.Query(query)
 	if err != nil {
+		ErrorLogger.Println("Error getting accounts: ", err)
 		return nil, err
 	}
 	accounts := []*Account{}
@@ -152,5 +155,8 @@ func scanIntoAccount(rows *sql.Rows) (*Account, error) {
 		&account.Number,
 		&account.Balance,
 		&account.CreatedAt)
+	if err != nil {
+		ErrorLogger.Println("Error scanning account: ", err)
+	}
 	return account, err
 }
